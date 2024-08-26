@@ -45,7 +45,7 @@ class VAEcallback(Callback):
         self.num_save       = model.num_save
         self.nchannel       = model.nchannel
         self.image_res      = model.image_res
-        self.data_dir       = model.data_dir
+        self.input1_dir       = model.input1_dir
         self.input2_dir     = model.input2_dir
         self.out1_dir     = model.out1_dir
         self.save_dir       = model.save_dir
@@ -62,7 +62,7 @@ class VAEcallback(Callback):
                          self.image_size * self.num_save, 
                          min(3, self.nchannel))) 
         
-        to_load = sorted(glob.glob(self.data_dir+'/train/*'))[:(self.num_save * self.num_save)]
+        to_load = sorted(glob.glob(self.input1_dir+'/train/*'))[:(self.num_save * self.num_save)]
 
         
         if self.nchannel > 3:
@@ -82,7 +82,9 @@ class VAEcallback(Callback):
 
         imageio.imwrite(os.path.join(self.save_dir, 'input_images.png'),
                         (input_figure*(2**self.image_res - 1)).astype(np.uint16))
-        
+        # input_figure = input_figure.reshape((input_figure.shape[0], input_figure.shape[1])) 
+        # im = Image.fromarray((input_figure*(2**self.image_res - 1)).astype(np.uint16))
+        # im.save(os.path.join(self.save_dir, 'input_images.png'))
     
         input_figure = np.zeros((self.image_size * self.num_save, 
                          self.image_size * self.num_save, 
@@ -108,7 +110,9 @@ class VAEcallback(Callback):
 
         imageio.imwrite(os.path.join(self.save_dir, 'input2_images.png'),
                         (input_figure*(2**self.image_res - 1)).astype(np.uint16))
-    
+        # input_figure = input_figure.reshape((input_figure.shape[0], input_figure.shape[1])) 
+        # im = Image.fromarray((input_figure*(2**self.image_res - 1)).astype(np.uint16))
+        # im.save(os.path.join(self.save_dir, 'input2_images.png'))
     
     
     
@@ -136,7 +140,9 @@ class VAEcallback(Callback):
 
         imageio.imwrite(os.path.join(self.save_dir, 'Truth_images.png'),
                         (input_figure*(2**self.image_res - 1)).astype(np.uint16))
-    
+        # input_figure = input_figure.reshape((input_figure.shape[0], input_figure.shape[1]))
+        # im = Image.fromarray((input_figure*(2**self.image_res - 1)).astype(np.uint16))
+        # im.save(os.path.join(self.save_dir, 'Truth_images.png'))
     
     def save_input_reconstruction(self, epoch=0, is_final=False):
         """ save grid of both input and reconstructed images side by side
@@ -144,7 +150,7 @@ class VAEcallback(Callback):
         flag=0
         train_datagen = ImageDataGenerator(rescale = 1./(2**self.image_res - 1))
         train_generator = train_datagen.flow_from_directory(
-                self.data_dir,
+                self.input1_dir,
                 target_size = (self.image_size, self.image_size),
                 batch_size = self.batch_size,
                 color_mode = 'grayscale',
@@ -156,7 +162,7 @@ class VAEcallback(Callback):
                                  self.image_size * self.num_save,
                                  min(3, self.nchannel)))
         
-        to_load = sorted(glob.glob(self.data_dir+'/train/*'))[:(self.num_save * self.num_save)]
+        to_load = sorted(glob.glob(self.input1_dir+'/train/*'))[:(self.num_save * self.num_save)]
         
         data = []
         for imagePath in to_load:
@@ -201,10 +207,19 @@ class VAEcallback(Callback):
                                          'reconstructed', 
                                          'recon_images_epoch_{0:03d}.tif'.format(epoch)),
                                         recon_figure)
+            # recon_figure = recon_figure.reshape((recon_figure.shape[0], recon_figure.shape[1]))
+            # im = Image.fromarray(recon_figure)
+            # im.save(os.path.join(self.save_dir, 
+                                        #  'reconstructed', 
+                                        #  'recon_images_epoch_{0:03d}.tif'.format(epoch)))
         else:
             imageio.imwrite(os.path.join(self.save_dir, 
                                          'recon_images_final1.tif'),
                                         recon_figure)
+            # recon_figure = recon_figure.reshape((recon_figure.shape[0], recon_figure.shape[1]))
+            # im = Image.fromarray(recon_figure)
+            # im.save(os.path.join(self.save_dir, 
+            #                              'recon_images_final1.tif'))
         recon_figure = np.zeros((self.image_size * self.num_save,
                                  self.image_size * self.num_save,
                                  min(3, self.nchannel)))
@@ -243,9 +258,15 @@ class VAEcallback(Callback):
         if not(is_final):
             imageio.imwrite(os.path.join(self.save_dir, 'latent_walk', 'latent_walk_epoch_{0:03d}.png'.format(epoch)), 
                             figure.astype(np.uint16))
+            # figure = figure.reshape((figure.shape[0], figure.shape[1]))
+            # im = Image.fromarray(figure.astype(np.uint16))
+            # im.save(os.path.join(self.save_dir, 'latent_walk', 'latent_walk_epoch_{0:03d}.png'.format(epoch)))
         else:
             imageio.imwrite(os.path.join(self.save_dir, 'latent_walk_final.png'), 
                             figure.astype(np.uint16))
+            # figure = figure.reshape((figure.shape[0], figure.shape[1]))
+            # im = Image.fromarray(figure.astype(np.uint16))
+            # im.save(os.path.join(self.save_dir, 'latent_walk_final.png'))
         
         
     def on_epoch_end(self, epoch, logs={}):

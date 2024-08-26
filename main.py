@@ -8,11 +8,11 @@ import argparse
 from ME_VAE import MEVAE
 
 parser = argparse.ArgumentParser(description='')
-parser.add_argument('--data_dir',       type=str,   default='InputImages1/',     help='input data directory (in train subfolder)')
-parser.add_argument('--input2_dir',       type=str,   default='InputImages2/',     help='output 1 data directory (in train subfolder)')
-parser.add_argument('--out1_dir',       type=str,   default='OutputImages/',     help='output 2 data directory (in train subfolder)')
+parser.add_argument('--input1_dir',       type=str,   default='InputImages1/',     help='input 1 data directory (in train subfolder)')
+parser.add_argument('--input2_dir',       type=str,   default='InputImages2/',     help='input 2 data directory (in train subfolder)')
+parser.add_argument('--out1_dir',       type=str,   default='OutputImages/',     help='output data directory (in train subfolder)')
 
-parser.add_argument('--image_dir',      type=str,   default=None,       help='alternative image (.png, etc) directory for visualization')
+# parser.add_argument('--image_dir',      type=str,   default=None,       help='alternative image (.png, etc) directory for visualization')
 parser.add_argument('--save_dir',       type=str,   default='Outputs/',     help='save directory')
 parser.add_argument('--phase',          type=str,   default='train',    help='train or load')
 parser.add_argument('--checkpoint',     type=str,   default='NA',       help='checkpoint weight file')
@@ -21,9 +21,9 @@ parser.add_argument('--do_vaecb_each',  type=int,   default=0,          help='ru
 parser.add_argument('--use_clr',        type=int,   default=1,          help='use cyclic learning rate? 1=yes, 0=no')
 parser.add_argument('--earlystop',		type=int,	default=1,			help='use early stopping? 1=yes, 0=no')
 parser.add_argument('--image_size',     type=int,   default=128,         help='image size')
-parser.add_argument('--nchannel',       type=int,   default=1,          help='image channels')
+parser.add_argument('--nchannel',       type=int,   default=3,          help='image channels')
 parser.add_argument('--image_res',      type=int,   default=8,          help='image resolution (8 or 16)')
-parser.add_argument('--latent_dim',     type=int,   default=128,          help='latent dimension')
+parser.add_argument('--latent_dim',     type=int,   default=32,          help='latent dimension')
 parser.add_argument('--nlayers',        type=int,   default=3,          help='number of layers in models')
 parser.add_argument('--inter_dim',      type=int,   default=128,        help='intermediate dimension')
 parser.add_argument('--nfilters',       type=int,   default=16,         help='num convolution filters')
@@ -47,8 +47,8 @@ def main():
 
     os.makedirs(args.save_dir, exist_ok=True)
 
-    if args.image_dir == None:
-        args.image_dir = os.path.join(args.data_dir, 'train')
+    # if args.image_dir == None:
+    #     args.image_dir = os.path.join(args.data_dir, 'train')
 
     if args.phase == 'train':
         model = MEVAE(args)

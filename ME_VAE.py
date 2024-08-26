@@ -6,12 +6,13 @@ from skimage.io import imsave,imread
 from skimage.transform import resize
 import glob
 import numpy as np
+import pandas as pd
 
 from keras.layers import Input, Conv2D, Flatten, Dense, Reshape, Lambda, Conv2DTranspose, concatenate, Concatenate, Multiply
 from keras import optimizers
 from keras import metrics
 from keras.models import Model
-from keras.utils import plot_model
+from keras.utils.vis_utils import plot_model
 from keras.preprocessing.image import ImageDataGenerator
 from keras import backend as K
 from keras.callbacks import TerminateOnNaN, CSVLogger, ModelCheckpoint, EarlyStopping
@@ -30,8 +31,8 @@ class MEVAE():
         """ initialize model with argument parameters and build
         """
         self.chIndex        = args.chIndex
-        self.data_dir       = args.data_dir
-        self.image_dir      = args.image_dir
+        self.input1_dir       = args.input1_dir
+        # self.image_dir      = args.image_dir
         self.save_dir       = args.save_dir    
         self.out1_dir        = args.out1_dir
         self.input2_dir     = args.input2_dir
@@ -60,8 +61,8 @@ class MEVAE():
         self.phase          = args.phase
         self.steps_per_epoch = args.steps_per_epoch
         
-        self.data_size = len(os.listdir(os.path.join(self.data_dir, 'train')))
-        self.file_names = os.listdir(os.path.join(self.data_dir, 'train'))
+        self.data_size = len(glob.glob(os.path.join(self.out1_dir, 'train', '*')))
+        # self.file_names = os.listdir(os.path.join(self.input1_dir, 'train'))
         
         self.image_size     = args.image_size  
         self.nchannel       = args.nchannel
@@ -92,10 +93,10 @@ class MEVAE():
         """ build VAE model
         """
         
-        input_shape = (self.image_size, self.image_size, self.nchannel)
+        input1_shape = (61, 100, 1)
         
         # build encoder1 model
-        inputs1 = Input(shape=input_shape, name='encoder_input1')
+        inputs1 = Input(shape=input1_shape, name='encoder_input1')
         self.inputs1=inputs1
         x1 = inputs1
         filters = self.nfilters
@@ -110,7 +111,7 @@ class MEVAE():
             filters *= 2
         
         # shape info needed to build decoder model
-        shape = K.int_shape(x1)
+        # shape = K.int_shape(x1)
         
         # generate latent vector Q(z|X)
         x1 = Flatten()(x1)
@@ -121,9 +122,10 @@ class MEVAE():
         # use reparameterization trick to push the sampling out as input
         z1 = Lambda(self.sampling, output_shape=(self.latent_dim,), name='z1')([z1_mean, z1_log_var])
         
-        
+        input2_shape = (61, 73, 61)
+
         # build encoder2 model
-        inputs2 = Input(shape=input_shape, name='encoder_input2')
+        inputs2 = Input(shape=input2_shape, name='encoder_input2')
         self.inputs2=inputs2
         x2 = inputs2
         filters = self.nfilters
@@ -145,14 +147,15 @@ class MEVAE():
         # use reparameterization trick to push the sampling out as input
         z2 = Lambda(self.sampling, output_shape=(self.latent_dim,), name='z2')([z2_mean, z2_log_var])
         
-        z12=Multiply()([z1,z2])
+        # z12=Multiply()([z1,z2])
+        z12=Concatenate()([z1,z2])
         
         
         
         # build decoder model
-        latent_inputs1 = Input(shape=(self.latent_dim,), name='z_sampling')
-        d1 = Dense(shape[1] * shape[2] * shape[3], activation='relu')(latent_inputs1)
-        d1 = Reshape((shape[1], shape[2], shape[3]))(d1)
+        latent_inputs1 = Input(shape=(self.latent_dim*2,), name='z_sampling')
+        d1 = Dense(16 * 16 * 64, activation='relu')(latent_inputs1)
+        d1 = Reshape((16, 16, 64))(d1)
         
         for i in range(self.nlayers):
             d1 = Conv2DTranspose(filters=filters,
@@ -163,7 +166,7 @@ class MEVAE():
             filters //= 2
         
         
-        outputs = Conv2DTranspose(filters=input_shape[2],
+        outputs = Conv2DTranspose(filters=self.nchannel,
                                   kernel_size=kernel_size,
                                   activation='sigmoid',
                                   padding='same',
@@ -187,7 +190,7 @@ class MEVAE():
         plot_model(self.decoder1, to_file=os.path.join(self.save_dir, 'decoder1_model.png'), show_shapes=True)
 
         # instantiate VAE model
-        outputs1 = self.decoder1(Multiply()([self.encoder1(inputs1)[2], self.encoder2(inputs2)[2]]))
+        outputs1 = self.decoder1(Concatenate()([self.encoder1(inputs1)[2], self.encoder2(inputs2)[2]]))
         self.vae = Model(inputs=[inputs1,inputs2], outputs=[outputs1], name='vae')
 
         
@@ -217,7 +220,7 @@ class MEVAE():
             l2=Decoder2Loss(true, pred)
             return l1+l2
 
-        optimizer = optimizers.rmsprop(lr = self.learn_rate)    
+        optimizer = optimizers.rmsprop_v2.RMSprop(lr = self.learn_rate)    
 
         losses = {"decoder1": CombLoss}
         lossWeights = {"decoder1": 1.0}
@@ -250,29 +253,29 @@ class MEVAE():
         #Note: Datagenerator including on the fly rotation, orientation, and size transformations not included here. Implement according to needs and use to load images.
     
         print('Loading Input1 Images')
-        imageList=sorted(glob.glob(os.path.join(self.data_dir,'train', '*')))
+        # imageList=sorted(glob.glob(os.path.join(self.input1_dir,'train', '*')))
         
-        data = []
-        for imagePath in imageList:
-                image = imread(imagePath)
-                image=resize(image,(self.image_size, self.image_size, self.nchannel))
-                image=image*(255/np.max(image))
-                data.append(image)
-        self.input1_data = np.array(data, dtype="float") / 255.0
+        # data = []
+        # for imagePath in imageList:
+        #         image = imread(imagePath)
+        #         image=resize(image,(self.image_size, self.image_size, self.nchannel))
+        #         image=image*(255/np.max(image))
+        #         data.append(image)
+        self.input1_data = np.zeros((self.data_size, 61, 100, 1)) # (data_size, eeg_channels, timepoints, 1)
             
         print('Loading Input2 Images')
-        imageList=sorted(glob.glob(os.path.join(input2_dir,'train', '*')))
-        data = []
-        for imagePath in imageList:
-                image = imread(imagePath)
-                image=resize(image,(self.image_size, self.image_size, self.nchannel))
-                image=image*(255/np.max(image))
-                data.append(image)
-        self.input2_data = np.array(data, dtype="float") / 255.0
+        # imageList=sorted(glob.glob(os.path.join(self.input2_dir,'train', '*')))
+        # data = []
+        # for imagePath in imageList:
+        #         image = imread(imagePath)
+        #         image=resize(image,(self.image_size, self.image_size, self.nchannel))
+        #         image=image*(255/np.max(image))
+        #         data.append(image)
+        self.input2_data = np.zeros((self.data_size, 61, 73, 61)) # (data_size, x_voxels, y_voxels, z_voxels)
                                  
                                  
         print('Loading Output Images')
-        imageList=sorted(glob.glob(os.path.join(out1_dir,'train', '*')))
+        imageList=sorted(glob.glob(os.path.join(self.out1_dir,'train', '*')))
         data = []
         for imagePath in imageList:
                 image = imread(imagePath)
@@ -321,7 +324,7 @@ class MEVAE():
         self.encoder2.save_weights(os.path.join(self.model_dir, 'weights_encoder2.hdf5'))
         self.decoder1.save_weights(os.path.join(self.model_dir, 'weights_decoder1.hdf5'))
 
-        self.encode()
+        # self.encode()
 
         print('done!')
    
@@ -335,7 +338,7 @@ class MEVAE():
         encoded1= self.encoder1.predict(self.input1_data)
         print('Encoding with Encoder2')
         encoded2= self.encoder2.predict(self.input2_data)
-        self.file_names = sorted(list(glob.glob(os.path.join(self.data_dir,'train', '*'))))  
+        self.file_names = sorted(list(glob.glob(os.path.join(self.input1_dir,'train', '*'))))  
            
          # save generated filename
         fnFile = open(os.path.join(self.save_dir, 'filenames.csv'), 'w')

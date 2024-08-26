@@ -32,7 +32,7 @@ The implementation contained in this repository is only a base version containin
 
 ## Example Run Command
 ```bash
-python main.py --data_dir "InputImages1/" --input2_dir "InputImages2/" --out1_dir "OutputImages/" --save_dir "Outputs/" --image_size 128 --latent_dim 32 --batch_size 10 --epochs 10 --verbose 1
+python main.py --input1_dir "InputImages1/" --input2_dir "InputImages2/" --out1_dir "OutputImages/" --save_dir "Outputs/" --image_size 128 --latent_dim 32 --batch_size 10 --epochs 10 --verbose 1
 ```
 
 
